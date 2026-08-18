@@ -1,69 +1,195 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  Sliders,
+  VolumeX,
+  Activity,
+  ArrowRightLeft,
+  Gauge,
+  Volume2,
+  Compass,
+  Maximize2,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Sparkles,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-export default function Home() {
+const TOOLS = [
+  {
+    title: "Universal Audio Converter",
+    description:
+      "Convert local audio formats or rip high-quality audio from YouTube directly to MP3 or WAV.",
+    href: "/converter",
+    icon: ArrowRightLeft,
+    badge: "Popular / Lossless",
+    color: "from-blue-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30",
+    ready: true,
+  },
+  {
+    title: "Pitch & Speed Shifter",
+    description:
+      "Transpose musical keys by semitones and stretch tempo independently using studio WSOLA algorithm.",
+    href: "/pitch-shifter",
+    icon: Sliders,
+    badge: "Studio WSOLA",
+    color:
+      "from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30",
+    ready: true,
+  },
+  {
+    title: "Silence Remover",
+    description:
+      "Automatically detect and cut out dead air, long pauses, and breaths with anti-click crossfades.",
+    href: "/silence-remover",
+    icon: VolumeX,
+    badge: "Smart Trim",
+    color:
+      "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
+    ready: true,
+  },
+  {
+    title: "Waveform Visualizer",
+    description:
+      "Create beat-reactive animated video visualizers for Reels & Shorts or export clean PNG/SVG vectors.",
+    href: "/waveform-generator",
+    icon: Activity,
+    badge: "Beat-Reactive Video",
+    color:
+      "from-amber-500/20 to-rose-500/20 text-amber-400 border-amber-500/30",
+    ready: true,
+  },
+  {
+    title: "Loudness Normalizer & Maximizer",
+    description:
+      "Target EBU R128 (-14 LUFS Spotify/YouTube, -16 LUFS Apple) with True Peak brickwall limiting.",
+    href: "/normalizer",
+    icon: Volume2,
+    badge: "EBU R128 / True Peak",
+    color:
+      "from-indigo-500/20 to-blue-500/20 text-indigo-400 border-indigo-500/30",
+    ready: true,
+  },
+  {
+    title: "BPM & Musical Key Detector",
+    description:
+      "Detect track tempo, root key, scale, and Camelot wheel code for DJ harmonic mixing.",
+    href: "/bpm-key-detector",
+    icon: Gauge,
+    badge: "Camelot & Chroma",
+    color:
+      "from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30",
+    ready: true,
+  },
+  {
+    title: "8D Audio Spatializer",
+    description:
+      "Binaural 360° spatial rotation with customizable LFO speed and distance acoustics.",
+    href: "/spatial-8d",
+    icon: Compass,
+    badge: "360° HRTF / Ambience",
+    color:
+      "from-fuchsia-500/20 to-purple-500/20 text-fuchsia-400 border-fuchsia-500/30",
+    ready: true,
+  },
+  {
+    title: "Stereo Widener & Phase Checker",
+    description:
+      "Expand soundstage width, mono-filter low bass, and inspect phase cancellation on a Lissajous scope.",
+    href: "/stereo-widener",
+    icon: Maximize2,
+    badge: "Mid/Side & Phase Scope",
+    color: "from-sky-500/20 to-teal-500/20 text-sky-400 border-sky-500/30",
+    ready: true,
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="container mx-auto max-w-6xl px-4 py-16 space-y-16">
+      {/* Hero Section */}
+      <div className="text-center space-y-4 max-w-3xl mx-auto">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Professional Web Audio Processing Suite</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
+          Next-Gen Audio Toolkit for Creators & Musicians
+        </h1>
+        <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+          Fast, client-side sound processing tools. Zero server uploads, zero
+          audio compression loss, and 100% privacy.
+        </p>
+
+        {/* Feature Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-4 w-4 text-amber-400" />
+            <span>Instant In-Browser Processing</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <span>100% Private (No File Uploads)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Studio Lossless Export (WAV / 320k MP3)</span>
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Tools Grid (8 Cards: 4x2 on large screens) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {TOOLS.map((tool) => {
+          const Icon = tool.icon;
+
+          return (
+            <Link key={tool.title} href={tool.href} className="group block">
+              <Card className="h-full border-border/60 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 bg-card/60 backdrop-blur flex flex-col justify-between">
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`rounded-xl border p-3 bg-gradient-to-br transition-all duration-300 group-hover:scale-110 ${tool.color}`}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="font-mono text-[10px]"
+                    >
+                      {tool.badge}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                    {tool.title}
+                  </CardTitle>
+                  <CardDescription className="text-xs leading-relaxed line-clamp-3">
+                    {tool.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-between text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                  >
+                    <span>Launch Tool</span>
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
