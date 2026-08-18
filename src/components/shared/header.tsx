@@ -13,6 +13,7 @@ import {
   Gauge,
   Compass,
   Maximize2,
+  Sparkles,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { label: "BPM & Key", href: "/bpm-key-detector", icon: Gauge },
   { label: "8D Spatial", href: "/spatial-8d", icon: Compass },
   { label: "Stereo Widener", href: "/stereo-widener", icon: Maximize2 },
+  { label: "Pricing", href: "/pricing", icon: Sparkles },
 ];
 
 export function Header() {
