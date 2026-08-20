@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const videoId = extractVideoId(url);
     if (!videoId) {
       return NextResponse.json(
-        { error: "Invalid YouTube URL format. Please provide a valid video or shorts link." },
+        { error: "Invalid YouTube URL. Please provide a valid video or shorts link." },
         { status: 400 }
       );
     }
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Запрос на конвертацию к RapidAPI
+    // 1. Запрос к RapidAPI
     const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
     const rapidRes = await fetch(apiUrl, {
       method: "GET",
@@ -48,33 +48,54 @@ export async function POST(req: Request) {
     });
 
     if (!rapidRes.ok) {
-      throw new Error(`RapidAPI responded with status ${rapidRes.status}`);
+      throw new Error(`RapidAPI status: ${rapidRes.status}`);
     }
 
     const rapidData = await rapidRes.json();
 
     if (rapidData.status === "fail" || !rapidData.link) {
-      throw new Error(rapidData.msg || "Failed to generate MP3 stream from YouTube.");
+      throw new Error(rapidData.msg || "Failed to generate MP3 stream link.");
     }
 
-    // 2. Скачивание аудиопотока и проксирование клиенту
-    const streamRes = await fetch(rapidData.link);
-    if (!streamRes.ok) {
-      throw new Error("Failed to stream audio file from download provider.");
+    const directDownloadLink = rapidData.link;
+
+    // 2. Скачивание аудиопотока с эмуляцией браузера
+    try {
+      const streamRes = await fetch(directDownloadLink, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          Accept: "*/*",
+          Referer: "https://youtube-mp36.p.rapidapi.com/",
+        },
+        redirect: "follow",
+      });
+
+      if (streamRes.ok) {
+        const audioBuffer = await streamRes.arrayBuffer();
+        return new NextResponse(audioBuffer, {
+          headers: {
+            "Content-Type": "audio/mpeg",
+            "Content-Disposition": `attachment; filename="${encodeURIComponent(
+              rapidData.title || `audio_${videoId}`
+            )}.mp3"`,
+          },
+        });
+      }
+    } catch {
+      // Если Vercel IP заблокирован CDN, отдаем прямую ссылку клиенту
     }
 
-    const audioBuffer = await streamRes.arrayBuffer();
-
-    return new NextResponse(audioBuffer, {
-      headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Disposition": `attachment; filename="${rapidData.title || `youtube_${videoId}`}.mp3"`,
-      },
+    // 3. Fallback: отдаем прямую ссылку браузеру клиента
+    return NextResponse.json({
+      success: true,
+      directUrl: directDownloadLink,
+      title: rapidData.title || `youtube_${videoId}`,
     });
   } catch (error: any) {
-    console.error("RapidAPI YouTube Error:", error);
+    console.error("RapidAPI Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to extract YouTube audio" },
+      { error: error.message || "Failed to process YouTube audio" },
       { status: 500 }
     );
   }

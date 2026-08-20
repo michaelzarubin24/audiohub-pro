@@ -313,7 +313,7 @@ export default function AudioConverterPage() {
     setErrorMessage(null);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
     try {
       const response = await fetch("/api/youtube", {
@@ -328,28 +328,43 @@ export default function AudioConverterPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error ||
-            "Failed to fetch YouTube audio stream. Please try another video or upload directly.",
+          errorData.error || "Failed to fetch YouTube audio stream.",
         );
       }
 
-      const blob = await response.blob();
-      const file = new File([blob], "youtube_audio_hq.mp3", {
-        type: blob.type || "audio/mpeg",
-      });
+      const contentType = response.headers.get("content-type") || "";
+
+      let file: File;
+
+      if (contentType.includes("application/json")) {
+        // Fallback: скачивание напрямую с клиента
+        const json = await response.json();
+        if (!json.directUrl) throw new Error("No download URL returned.");
+
+        const directRes = await fetch(json.directUrl);
+        if (!directRes.ok)
+          throw new Error("Could not download audio stream from provider.");
+        const blob = await directRes.blob();
+        file = new File([blob], `${json.title || "youtube_audio"}.mp3`, {
+          type: "audio/mpeg",
+        });
+      } else {
+        // Прямой бинарный ответ от сервера
+        const blob = await response.blob();
+        file = new File([blob], "youtube_audio.mp3", {
+          type: blob.type || "audio/mpeg",
+        });
+      }
 
       await handleFileSelect(file);
       setYoutubeUrl("");
     } catch (err: any) {
       if (err.name === "AbortError") {
         setErrorMessage(
-          "Request timed out. YouTube servers took too long to respond. Please try again or upload a local file.",
+          "Request timed out. Please try again or upload a local file.",
         );
       } else {
-        setErrorMessage(
-          err.message ||
-            "Could not fetch YouTube audio. Please check URL or try another link.",
-        );
+        setErrorMessage(err.message || "Failed to fetch YouTube audio.");
       }
     } finally {
       setIsFetching(false);
