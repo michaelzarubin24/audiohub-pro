@@ -27,15 +27,15 @@ const TOOLS = [
     badge: "Popular",
     color: "from-blue-500/20 to-indigo-500/20 text-blue-400",
   },
-  {
-    title: "AI Vocal Remover",
-    description:
-      "Separate vocals and backing tracks with Meta Demucs v4 AI to create clean instrumental minus & acapellas.",
-    href: "/vocal-remover",
-    icon: Mic,
-    badge: "AI Powered",
-    color: "from-purple-500/20 to-pink-500/20 text-purple-400",
-  },
+  // {
+  //   title: "AI Vocal Remover",
+  //   description:
+  //     "Separate vocals and backing tracks with Meta Demucs v4 AI to create clean instrumental minus & acapellas.",
+  //   href: "/vocal-remover",
+  //   icon: Mic,
+  //   badge: "AI Powered",
+  //   color: "from-purple-500/20 to-pink-500/20 text-purple-400",
+  // },
   {
     title: "Pitch & Speed Shifter",
     description:
