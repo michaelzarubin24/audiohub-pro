@@ -59,8 +59,8 @@ export default function VocalRemoverPage() {
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    if (file.size > 50 * 1024 * 1024) {
-      setErrorMessage("File is too large. Max supported size is 50MB.");
+    if (file.size > 60 * 1024 * 1024) {
+      setErrorMessage("File is too large. Maximum supported size is 60MB.");
       return;
     }
 
@@ -73,39 +73,57 @@ export default function VocalRemoverPage() {
     setCurrentTime(0);
 
     try {
-      // 1. Очистка имени файла от пробелов, кириллицы и скобок для Vercel Blob
-      const safeExtension = file.name.split(".").pop() || "mp3";
-      const cleanName = `track_${Date.now()}_${file.name
-        .replace(/\.[^/.]+$/, "")
-        .replace(/[^a-zA-Z0-9_-]/g, "_")}.${safeExtension}`;
+      let publicAudioUrl = "";
 
-      // 2. Прямая загрузка в Vercel Blob
-      setStatusText("Uploading audio to cloud storage...");
-      const blob = await upload(cleanName, file, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-      });
+      // 1. Попытка загрузки через Vercel Blob
+      setStatusText("Uploading audio to cloud...");
+      try {
+        const safeName = `track_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        const blob = await upload(safeName, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+        publicAudioUrl = blob.url;
+      } catch (blobErr) {
+        console.warn(
+          "Vercel Blob failed, falling back to direct temp upload...",
+          blobErr,
+        );
 
-      // 3. Передача ссылки в нейросеть Demucs v4
-      setStatusText("AI is isolating stems (Demucs v4)...");
+        // 2. Резервный метод: мгновенный прямой CDN (без ограничений Vercel)
+        const directFormData = new FormData();
+        directFormData.append("file", file);
+        const tempUploadRes = await fetch(
+          "https://tmpfiles.org/api/v1/upload",
+          {
+            method: "POST",
+            body: directFormData,
+          },
+        );
+
+        if (!tempUploadRes.ok)
+          throw new Error("Could not upload audio file to processing queue.");
+        const tempData = await tempUploadRes.json();
+
+        // Преобразуем URL в прямую ссылку на скачивание (tmpfiles.org/dl/...)
+        const rawUrl = tempData.data.url;
+        publicAudioUrl = rawUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+      }
+
+      // 3. Отправка URL в нейросеть Demucs v4
+      setStatusText("AI is separating stems (Demucs v4)...");
       const response = await fetch("/api/vocal-remover", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audioUrl: blob.url }),
+        body: JSON.stringify({ audioUrl: publicAudioUrl }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        let errorMsg = "Neural network separation failed.";
-        try {
-          const errData = await response.json();
-          errorMsg = errData.error || errorMsg;
-        } catch {
-          errorMsg = `Server error: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMsg);
+        throw new Error(data.error || "Neural network separation failed.");
       }
 
-      const data = await response.json();
       setVocalsUrl(data.vocalsUrl);
       setInstrumentalUrl(data.instrumentalUrl);
     } catch (err: any) {
