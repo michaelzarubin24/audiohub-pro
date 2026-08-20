@@ -169,9 +169,6 @@ export default function HomePage() {
           })}
         </div>
       </main>
-
-      {/* Футер */}
-      <Footer />
     </div>
   );
 }
