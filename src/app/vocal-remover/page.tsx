@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { upload } from "@vercel/blob/client";
 import {
   Upload,
   Play,
@@ -59,8 +58,8 @@ export default function VocalRemoverPage() {
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    if (file.size > 60 * 1024 * 1024) {
-      setErrorMessage("File is too large. Maximum supported size is 60MB.");
+    if (file.size > 80 * 1024 * 1024) {
+      setErrorMessage("File is too large. Max supported size is 80MB.");
       return;
     }
 
@@ -73,59 +72,47 @@ export default function VocalRemoverPage() {
     setCurrentTime(0);
 
     try {
-      let publicAudioUrl = "";
+      // 1. Прямая загрузка аудиофайла на временный быстрый CDN
+      setStatusText("Uploading audio to processing stream...");
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
 
-      // 1. Попытка загрузки через Vercel Blob
-      setStatusText("Uploading audio to cloud...");
-      try {
-        const safeName = `track_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-        const blob = await upload(safeName, file, {
-          access: "public",
-          handleUploadUrl: "/api/upload",
-        });
-        publicAudioUrl = blob.url;
-      } catch (blobErr) {
-        console.warn(
-          "Vercel Blob failed, falling back to direct temp upload...",
-          blobErr,
-        );
-
-        // 2. Резервный метод: мгновенный прямой CDN (без ограничений Vercel)
-        const directFormData = new FormData();
-        directFormData.append("file", file);
-        const tempUploadRes = await fetch(
-          "https://tmpfiles.org/api/v1/upload",
-          {
-            method: "POST",
-            body: directFormData,
-          },
-        );
-
-        if (!tempUploadRes.ok)
-          throw new Error("Could not upload audio file to processing queue.");
-        const tempData = await tempUploadRes.json();
-
-        // Преобразуем URL в прямую ссылку на скачивание (tmpfiles.org/dl/...)
-        const rawUrl = tempData.data.url;
-        publicAudioUrl = rawUrl.replace("tmpfiles.org/", "tmpfiles.org/dl/");
-      }
-
-      // 3. Отправка URL в нейросеть Demucs v4
-      setStatusText("AI is separating stems (Demucs v4)...");
-      const response = await fetch("/api/vocal-remover", {
+      const uploadRes = await fetch("https://tmpfiles.org/api/v1/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ audioUrl: publicAudioUrl }),
+        body: uploadFormData,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Neural network separation failed.");
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload audio to processing stream.");
       }
 
-      setVocalsUrl(data.vocalsUrl);
-      setInstrumentalUrl(data.instrumentalUrl);
+      const uploadData = await uploadRes.json();
+      if (!uploadData?.data?.url) {
+        throw new Error("Invalid upload server response.");
+      }
+
+      // Формируем прямую ссылку на скачивание (заменяем tmpfiles.org/ -> tmpfiles.org/dl/)
+      const directAudioUrl = uploadData.data.url.replace(
+        "tmpfiles.org/",
+        "tmpfiles.org/dl/",
+      );
+
+      // 2. Отправка прямой ссылки в Replicate API (Meta Demucs v4)
+      setStatusText("AI is separating stems with Meta Demucs v4 (~15-20s)...");
+      const aiResponse = await fetch("/api/vocal-remover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioUrl: directAudioUrl }),
+      });
+
+      const aiData = await aiResponse.json();
+
+      if (!aiResponse.ok) {
+        throw new Error(aiData.error || "Neural network separation failed.");
+      }
+
+      setVocalsUrl(aiData.vocalsUrl);
+      setInstrumentalUrl(aiData.instrumentalUrl);
     } catch (err: any) {
       console.error("Vocal remover error:", err);
       setErrorMessage(err.message || "Failed to process audio.");
@@ -273,7 +260,7 @@ export default function VocalRemoverPage() {
               {isProcessing ? statusText : "Choose Song File or Drag & Drop"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Supports MP3, WAV, FLAC, AAC up to 50MB (Takes ~15–20 seconds)
+              Supports MP3, WAV, FLAC, AAC up to 80MB (Takes ~15–20 seconds)
             </p>
           </div>
 
@@ -285,7 +272,7 @@ export default function VocalRemoverPage() {
                   {statusText}
                 </span>
                 <span className="font-mono text-primary animate-pulse">
-                  Running
+                  Running AI
                 </span>
               </div>
               <Progress value={null} className="h-2 rounded-full" />
@@ -294,7 +281,7 @@ export default function VocalRemoverPage() {
         </CardContent>
       </Card>
 
-      {/* Результат */}
+      {/* Результат и микшер дорожек */}
       {vocalsUrl && instrumentalUrl && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <Card className="border-border/60 bg-card/60 backdrop-blur-xl shadow-sm">
@@ -343,7 +330,7 @@ export default function VocalRemoverPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Минус */}
+                {/* Инструментал */}
                 <div className="p-4 rounded-xl bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
