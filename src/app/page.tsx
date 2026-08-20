@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   ArrowRightLeft,
-  Mic,
   Sliders,
   VolumeX,
   Activity,
@@ -27,19 +26,10 @@ const TOOLS = [
     badge: "Popular",
     color: "from-blue-500/20 to-indigo-500/20 text-blue-400",
   },
-  // {
-  //   title: "AI Vocal Remover",
-  //   description:
-  //     "Separate vocals and backing tracks with Meta Demucs v4 AI to create clean instrumental minus & acapellas.",
-  //   href: "/vocal-remover",
-  //   icon: Mic,
-  //   badge: "AI Powered",
-  //   color: "from-purple-500/20 to-pink-500/20 text-purple-400",
-  // },
   {
     title: "Pitch & Speed Shifter",
     description:
-      "Change playback speed and transpose musical keys independently without audio quality distortion.",
+      "Change playback speed and transpose musical keys independently without quality distortion.",
     href: "/pitch-shifter",
     icon: Sliders,
     badge: "DSP",
@@ -48,7 +38,7 @@ const TOOLS = [
   {
     title: "Silence Remover",
     description:
-      "Detect and auto-trim dead air, silent pauses, and low-volume gaps in podcasts and speech tracks.",
+      "Detect and auto-trim dead air, pauses, and low-volume gaps in podcasts and speech tracks.",
     href: "/silence-remover",
     icon: VolumeX,
     badge: null,
@@ -57,7 +47,7 @@ const TOOLS = [
   {
     title: "Waveform Visualizer",
     description:
-      "Generate beat-reactive audio waveforms, circular spectrum rings, and export HD video animations.",
+      "Generate beat-reactive waveforms, circular spectrum rings, and export HD video animations.",
     href: "/waveform-generator",
     icon: Activity,
     badge: "Video Export",
@@ -66,7 +56,7 @@ const TOOLS = [
   {
     title: "Loudness Normalizer",
     description:
-      "Normalize track loudness to broadcast standards (EBU R128, -14 LUFS Spotify, Apple Music) with True Peak limiter.",
+      "Normalize track loudness to broadcast standards (EBU R128, -14 LUFS Spotify) with True Peak limiter.",
     href: "/normalizer",
     icon: Volume2,
     badge: "Mastering",
@@ -75,7 +65,7 @@ const TOOLS = [
   {
     title: "BPM & Key Detector",
     description:
-      "Detect tempo in beats per minute, root musical key, and Camelot wheel harmonic mixing tags instantly.",
+      "Detect tempo in BPM, root musical key, and Camelot wheel harmonic mixing tags instantly.",
     href: "/bpm-key-detector",
     icon: Gauge,
     badge: "DJ Tool",
@@ -93,7 +83,7 @@ const TOOLS = [
   {
     title: "Stereo Widener",
     description:
-      "Expand soundstage width with Mid/Side matrix processing and verify mono compatibility with real-time goniometer.",
+      "Expand soundstage width with Mid/Side matrix processing and verify mono compatibility.",
     href: "/stereo-widener",
     icon: Maximize2,
     badge: "Studio",
@@ -103,8 +93,8 @@ const TOOLS = [
 
 export default function HomePage() {
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-16 space-y-12">
-      {/* Hero Section */}
+    <div className="container mx-auto max-w-7xl px-4 py-10 sm:py-16 space-y-12">
+      {/* Hero */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
           Next-Gen Audio Toolkit for Creators & Musicians
@@ -114,7 +104,6 @@ export default function HomePage() {
           lossless export, and 100% privacy.
         </p>
 
-        {/* Feature Highlights */}
         <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Zap className="h-4 w-4 text-amber-400" />
@@ -131,19 +120,19 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3x3 Grid of 9 Tools */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Grid: 4 колонки x 2 ряда */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
 
           return (
             <Link key={tool.href} href={tool.href} className="group block">
               <Card className="h-full border-border/60 bg-card/50 backdrop-blur-sm transition-all duration-200 group-hover:border-primary/40 group-hover:shadow-md group-hover:-translate-y-1">
-                <CardContent className="p-6 flex flex-col justify-between h-full space-y-4">
+                <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div
-                        className={`w-11 h-11 rounded-xl bg-gradient-to-br ${tool.color} border border-border/40 flex items-center justify-center transition-transform group-hover:scale-105`}
+                        className={`w-10 h-10 rounded-xl bg-gradient-to-br ${tool.color} border border-border/40 flex items-center justify-center transition-transform group-hover:scale-105`}
                       >
                         <Icon className="h-5 w-5" />
                       </div>
@@ -158,7 +147,7 @@ export default function HomePage() {
                     </div>
 
                     <div>
-                      <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                      <h2 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                         <span>{tool.title}</span>
                       </h2>
                       <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
@@ -167,7 +156,7 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center text-xs font-semibold text-primary pt-2 opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                  <div className="flex items-center text-xs font-semibold text-primary pt-1 opacity-0 group-hover:opacity-100 transition-opacity gap-1">
                     <span>Open tool</span>
                     <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                   </div>
