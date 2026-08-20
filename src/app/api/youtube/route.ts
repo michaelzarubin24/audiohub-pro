@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 15; // Максимальное время для Vercel Serverless
+export const maxDuration = 20;
 export const dynamic = "force-dynamic";
 
-// Извлечение ID видео из ссылки любого формата
 function extractVideoId(url: string): string | null {
-  const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/;
-  const match = url.match(regExp);
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+  );
   return match ? match[1] : null;
 }
 
@@ -15,123 +15,157 @@ export async function POST(req: Request) {
     const { url } = await req.json();
 
     if (!url) {
-      return NextResponse.json({ error: "YouTube URL is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "YouTube URL is required" },
+        { status: 400 }
+      );
     }
 
     const videoId = extractVideoId(url);
     if (!videoId) {
       return NextResponse.json(
-        { error: "Invalid YouTube URL format. Please provide a valid video or shorts link." },
+        { error: "Invalid YouTube URL. Please provide a valid video or shorts link." },
         { status: 400 }
       );
     }
 
-    // 1. Попытка через публичные инстансы Cobalt API (работает с аудиопотоками YouTube без блокировки по IP)
-    const cobaltInstances = [
+    const targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+    // 1. Пул инстансов Cobalt API (протокол v10)
+    const cobaltEndpoints = [
       "https://api.cobalt.tools",
       "https://cobalt-backend.canine.tools",
     ];
 
-    for (const endpoint of cobaltInstances) {
+    for (const endpoint of cobaltEndpoints) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        const timeout = setTimeout(() => controller.abort(), 6000);
 
-        const cobaltRes = await fetch(`${endpoint}/`, {
+        const res = await fetch(`${endpoint}/`, {
           method: "POST",
           headers: {
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "User-Agent": "AudioHub-Web/1.0",
           },
           body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            audioFormat: "mp3",
+            url: targetUrl,
             downloadMode: "audio",
+            audioFormat: "mp3",
             audioBitrate: "320",
           }),
           signal: controller.signal,
         });
 
-        clearTimeout(timeoutId);
+        clearTimeout(timeout);
 
-        if (cobaltRes.ok) {
-          const data = await cobaltRes.json();
-          if (data.url || data.audio) {
-            const streamUrl = data.url || data.audio;
-            // Проксируем аудио через поток
-            const audioStreamRes = await fetch(streamUrl);
-            if (audioStreamRes.ok) {
-              const audioBuffer = await audioStreamRes.arrayBuffer();
-              return new NextResponse(audioBuffer, {
+        if (res.ok) {
+          const data = await res.json();
+          const downloadUrl = data.url || data.audio;
+
+          if (downloadUrl) {
+            const streamRes = await fetch(downloadUrl);
+            if (streamRes.ok) {
+              const buffer = await streamRes.arrayBuffer();
+              return new NextResponse(buffer, {
                 headers: {
                   "Content-Type": "audio/mpeg",
-                  "Content-Disposition": `attachment; filename="youtube_${videoId}.mp3"`,
+                  "Content-Disposition": `attachment; filename="audio_${videoId}.mp3"`,
                 },
               });
             }
           }
         }
-      } catch (err) {
-        console.warn(`Cobalt instance ${endpoint} failed, trying next fallback...`);
+      } catch {
+        // Переход к следующему зеркалу
       }
     }
 
-    // 2. Резервный метод: Piped / Invidious Audio API
-    const pipedInstances = [
-      "https://pipedapi.kavin.rocks",
-      "https://api.piped.privacydev.net",
-      "https://pipedapi.tokhmi.xyz",
+    // 2. Пул активных зеркал Invidious API
+    const invidiousNodes = [
+      "https://yewtu.be",
+      "https://inv.nadeko.net",
+      "https://invidious.nerdvpn.de",
+      "https://invidious.f5.si",
     ];
 
-    for (const piped of pipedInstances) {
+    for (const node of invidiousNodes) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 6000);
 
-        const metaRes = await fetch(`${piped}/streams/${videoId}`, {
+        const infoRes = await fetch(`${node}/api/v1/videos/${videoId}`, {
           signal: controller.signal,
-          headers: { "User-Agent": "Mozilla/5.0" },
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
         });
 
-        clearTimeout(timeoutId);
+        clearTimeout(timeout);
 
-        if (metaRes.ok) {
-          const meta = await metaRes.json();
-          const audioStreams = meta.audioStreams;
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          const formats = [
+            ...(info.adaptiveFormats || []),
+            ...(info.formatStreams || []),
+          ];
 
-          if (audioStreams && audioStreams.length > 0) {
-            // Выбираем лучший аудиопоток по битрейту
-            audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
-            const bestStream = audioStreams[0];
+          // Ищем аудиопотоки с наилучшим качеством
+          const audioFormats = formats.filter(
+            (f: any) =>
+              f.type?.startsWith("audio/") ||
+              f.mimeType?.startsWith("audio/") ||
+              f.audioQuality
+          );
 
-            const streamFetch = await fetch(bestStream.url);
-            if (streamFetch.ok) {
-              const audioData = await streamFetch.arrayBuffer();
-              return new NextResponse(audioData, {
+          if (audioFormats.length > 0) {
+            audioFormats.sort(
+              (a: any, b: any) =>
+                (parseInt(b.bitrate, 10) || 0) - (parseInt(a.bitrate, 10) || 0)
+            );
+
+            const bestAudio = audioFormats[0];
+            const audioStreamUrl = bestAudio.url;
+
+            if (audioStreamUrl) {
+              const audioStreamRes = await fetch(audioStreamUrl, {
                 headers: {
-                  "Content-Type": bestStream.mimeType || "audio/webm",
-                  "Content-Disposition": `attachment; filename="youtube_${videoId}.mp3"`,
+                  "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 },
               });
+
+              if (audioStreamRes.ok) {
+                const buffer = await audioStreamRes.arrayBuffer();
+                return new NextResponse(buffer, {
+                  headers: {
+                    "Content-Type":
+                      bestAudio.type || bestAudio.mimeType || "audio/mpeg",
+                    "Content-Disposition": `attachment; filename="audio_${videoId}.mp3"`,
+                  },
+                });
+              }
             }
           }
         }
-      } catch (err) {
-        console.warn(`Piped instance ${piped} failed, trying next...`);
+      } catch {
+        // Переход к следующей ноде
       }
     }
 
     return NextResponse.json(
       {
         error:
-          "YouTube datacenter restriction: Unable to extract audio directly on cloud server. Please upload audio file directly or try another video.",
+          "YouTube rate-limit reached across all public mirrors. Please upload your audio file directly via the 'Upload File' tab.",
       },
       { status: 502 }
     );
   } catch (error: any) {
-    console.error("YouTube Route Error:", error);
+    console.error("YouTube API Route Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process YouTube audio stream" },
+      { error: error.message || "Failed to process audio stream" },
       { status: 500 }
     );
   }
