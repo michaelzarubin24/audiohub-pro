@@ -1,131 +1,120 @@
 import Link from "next/link";
 import {
+  ArrowRightLeft,
+  Mic,
   Sliders,
   VolumeX,
   Activity,
-  ArrowRightLeft,
-  Gauge,
   Volume2,
+  Gauge,
   Compass,
   Maximize2,
-  ArrowRight,
-  ShieldCheck,
-  Zap,
   Sparkles,
+  Zap,
+  ShieldCheck,
+  ArrowRight,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 const TOOLS = [
   {
-    title: "Universal Audio Converter",
+    title: "Audio Converter",
     description:
-      "Convert local audio formats or rip high-quality audio from YouTube directly to MP3 or WAV.",
+      "Convert audio files between WAV, MP3, FLAC, AAC or rip studio-quality sound from YouTube.",
     href: "/converter",
     icon: ArrowRightLeft,
-    badge: "Popular / Lossless",
-    color: "from-blue-500/20 to-cyan-500/20 text-cyan-400 border-cyan-500/30",
-    ready: true,
+    badge: "Popular",
+    color: "from-blue-500/20 to-indigo-500/20 text-blue-400",
+  },
+  {
+    title: "AI Vocal Remover",
+    description:
+      "Separate vocals and backing tracks with Meta Demucs v4 AI to create clean instrumental minus & acapellas.",
+    href: "/vocal-remover",
+    icon: Mic,
+    badge: "AI Powered",
+    color: "from-purple-500/20 to-pink-500/20 text-purple-400",
   },
   {
     title: "Pitch & Speed Shifter",
     description:
-      "Transpose musical keys by semitones and stretch tempo independently using studio WSOLA algorithm.",
+      "Change playback speed and transpose musical keys independently without audio quality distortion.",
     href: "/pitch-shifter",
     icon: Sliders,
-    badge: "Studio WSOLA",
-    color:
-      "from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30",
-    ready: true,
+    badge: "DSP",
+    color: "from-amber-500/20 to-orange-500/20 text-amber-400",
   },
   {
     title: "Silence Remover",
     description:
-      "Automatically detect and cut out dead air, long pauses, and breaths with anti-click crossfades.",
+      "Detect and auto-trim dead air, silent pauses, and low-volume gaps in podcasts and speech tracks.",
     href: "/silence-remover",
     icon: VolumeX,
-    badge: "Smart Trim",
-    color:
-      "from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30",
-    ready: true,
+    badge: null,
+    color: "from-rose-500/20 to-red-500/20 text-rose-400",
   },
   {
     title: "Waveform Visualizer",
     description:
-      "Create beat-reactive animated video visualizers for Reels & Shorts or export clean PNG/SVG vectors.",
+      "Generate beat-reactive audio waveforms, circular spectrum rings, and export HD video animations.",
     href: "/waveform-generator",
     icon: Activity,
-    badge: "Beat-Reactive Video",
-    color:
-      "from-amber-500/20 to-rose-500/20 text-amber-400 border-amber-500/30",
-    ready: true,
+    badge: "Video Export",
+    color: "from-cyan-500/20 to-teal-500/20 text-cyan-400",
   },
   {
-    title: "Loudness Normalizer & Maximizer",
+    title: "Loudness Normalizer",
     description:
-      "Target EBU R128 (-14 LUFS Spotify/YouTube, -16 LUFS Apple) with True Peak brickwall limiting.",
+      "Normalize track loudness to broadcast standards (EBU R128, -14 LUFS Spotify, Apple Music) with True Peak limiter.",
     href: "/normalizer",
     icon: Volume2,
-    badge: "EBU R128 / True Peak",
-    color:
-      "from-indigo-500/20 to-blue-500/20 text-indigo-400 border-indigo-500/30",
-    ready: true,
+    badge: "Mastering",
+    color: "from-emerald-500/20 to-green-500/20 text-emerald-400",
   },
   {
-    title: "BPM & Musical Key Detector",
+    title: "BPM & Key Detector",
     description:
-      "Detect track tempo, root key, scale, and Camelot wheel code for DJ harmonic mixing.",
+      "Detect tempo in beats per minute, root musical key, and Camelot wheel harmonic mixing tags instantly.",
     href: "/bpm-key-detector",
     icon: Gauge,
-    badge: "Camelot & Chroma",
-    color:
-      "from-orange-500/20 to-amber-500/20 text-orange-400 border-orange-500/30",
-    ready: true,
+    badge: "DJ Tool",
+    color: "from-violet-500/20 to-purple-500/20 text-violet-400",
   },
   {
-    title: "8D Audio Spatializer",
+    title: "8D Spatial Audio",
     description:
-      "Binaural 360° spatial rotation with customizable LFO speed and distance acoustics.",
+      "Transform flat stereo into a 360-degree rotating binaural sound experience with spatial reverb.",
     href: "/spatial-8d",
     icon: Compass,
-    badge: "360° HRTF / Ambience",
-    color:
-      "from-fuchsia-500/20 to-purple-500/20 text-fuchsia-400 border-fuchsia-500/30",
-    ready: true,
+    badge: null,
+    color: "from-sky-500/20 to-blue-500/20 text-sky-400",
   },
   {
-    title: "Stereo Widener & Phase Checker",
+    title: "Stereo Widener",
     description:
-      "Expand soundstage width, mono-filter low bass, and inspect phase cancellation on a Lissajous scope.",
+      "Expand soundstage width with Mid/Side matrix processing and verify mono compatibility with real-time goniometer.",
     href: "/stereo-widener",
     icon: Maximize2,
-    badge: "Mid/Side & Phase Scope",
-    color: "from-sky-500/20 to-teal-500/20 text-sky-400 border-sky-500/30",
-    ready: true,
+    badge: "Studio",
+    color: "from-fuchsia-500/20 to-pink-500/20 text-fuchsia-400",
   },
 ];
 
 export default function HomePage() {
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-16 space-y-16">
+    <div className="container mx-auto max-w-6xl px-4 py-10 sm:py-16 space-y-12">
       {/* Hero Section */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
           Next-Gen Audio Toolkit for Creators & Musicians
         </h1>
         <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-          Fast, client-side sound processing tools. Zero server uploads, zero
-          audio compression loss, and 100% privacy.
+          Fast, client-side sound processing suite. Zero server queues, studio
+          lossless export, and 100% privacy.
         </p>
 
-        {/* Feature Badges */}
+        {/* Feature Highlights */}
         <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Zap className="h-4 w-4 text-amber-400" />
@@ -133,7 +122,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            <span>100% Private (No File Uploads)</span>
+            <span>100% Private (No Cloud Storage)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-4 w-4 text-primary" />
@@ -142,44 +131,46 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Tools Grid (8 Cards: 4x2 on large screens) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* 3x3 Grid of 9 Tools */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
 
           return (
-            <Link key={tool.title} href={tool.href} className="group block">
-              <Card className="h-full border-border/60 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 bg-card/60 backdrop-blur flex flex-col justify-between">
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <div
-                      className={`rounded-xl border p-3 bg-gradient-to-br transition-all duration-300 group-hover:scale-110 ${tool.color}`}
-                    >
-                      <Icon className="h-5 w-5" />
+            <Link key={tool.href} href={tool.href} className="group block">
+              <Card className="h-full border-border/60 bg-card/50 backdrop-blur-sm transition-all duration-200 group-hover:border-primary/40 group-hover:shadow-md group-hover:-translate-y-1">
+                <CardContent className="p-6 flex flex-col justify-between h-full space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div
+                        className={`w-11 h-11 rounded-xl bg-gradient-to-br ${tool.color} border border-border/40 flex items-center justify-center transition-transform group-hover:scale-105`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      {tool.badge && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold px-2 py-0.5"
+                        >
+                          {tool.badge}
+                        </Badge>
+                      )}
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className="font-mono text-[10px]"
-                    >
-                      {tool.badge}
-                    </Badge>
+
+                    <div>
+                      <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                        <span>{tool.title}</span>
+                      </h2>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-1.5">
+                        {tool.description}
+                      </p>
+                    </div>
                   </div>
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                    {tool.title}
-                  </CardTitle>
-                  <CardDescription className="text-xs leading-relaxed line-clamp-3">
-                    {tool.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-between text-xs font-semibold group-hover:bg-primary group-hover:text-primary-foreground transition-all"
-                  >
-                    <span>Launch Tool</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
+
+                  <div className="flex items-center text-xs font-semibold text-primary pt-2 opacity-0 group-hover:opacity-100 transition-opacity gap-1">
+                    <span>Open tool</span>
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                  </div>
                 </CardContent>
               </Card>
             </Link>
