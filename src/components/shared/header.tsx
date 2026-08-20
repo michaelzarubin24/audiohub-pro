@@ -173,7 +173,7 @@ export function Header() {
           </div>
 
           {/* Ссылка на Pricing */}
-          <Link
+          {/* <Link
             href="/pricing"
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               pathname === "/pricing"
@@ -182,7 +182,7 @@ export function Header() {
             }`}
           >
             Pricing
-          </Link>
+          </Link> */}
         </nav>
 
         {/* Правый блок: Переключатель темы + Кнопка Pro */}
