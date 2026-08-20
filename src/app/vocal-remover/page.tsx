@@ -1,24 +1,22 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { upload } from "@vercel/blob/client";
 import {
   Upload,
   Play,
   Pause,
   Download,
-  RotateCcw,
   Sparkles,
   FileAudio,
   AlertCircle,
   Loader2,
   Mic,
   Music2,
-  Volume2,
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 
@@ -32,27 +30,23 @@ function formatDuration(seconds: number) {
 export default function VocalRemoverPage() {
   const [fileName, setFileName] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusText, setStatusText] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Ссылки на готовые аудиодорожки
   const [vocalsUrl, setVocalsUrl] = useState<string | null>(null);
   const [instrumentalUrl, setInstrumentalUrl] = useState<string | null>(null);
 
-  // Состояние синхронного плеера
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Громкость дорожек
-  const [vocalVolume, setVocalVolume] = useState(0); // По умолчанию 0 (Караоке минус)
+  const [vocalVolume, setVocalVolume] = useState(0);
   const [musicVolume, setMusicVolume] = useState(1);
 
-  // Ссылки на HTML5 Audio элементы
   const vocalsAudioRef = useRef<HTMLAudioElement | null>(null);
   const instrumentalAudioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Синхронизация громкости
   useEffect(() => {
     if (vocalsAudioRef.current) vocalsAudioRef.current.volume = vocalVolume;
   }, [vocalVolume]);
@@ -62,14 +56,11 @@ export default function VocalRemoverPage() {
       instrumentalAudioRef.current.volume = musicVolume;
   }, [musicVolume]);
 
-  // Загрузка и отправка файла в нейросеть
   const handleFileUpload = async (file: File) => {
     if (!file) return;
 
-    if (file.size > 25 * 1024 * 1024) {
-      setErrorMessage(
-        "File is too large. Please upload an audio file under 25MB.",
-      );
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMessage("File is too large. Max supported size is 50MB.");
       return;
     }
 
@@ -81,13 +72,20 @@ export default function VocalRemoverPage() {
     setIsPlaying(false);
     setCurrentTime(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+      // 1. Прямая загрузка в Vercel Blob из браузера
+      setStatusText("Uploading audio to cloud storage...");
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+
+      // 2. Отправка публичного URL в нейросеть
+      setStatusText("AI is isolating stems (Demucs v4)...");
       const response = await fetch("/api/vocal-remover", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioUrl: blob.url }),
       });
 
       const data = await response.json();
@@ -102,14 +100,13 @@ export default function VocalRemoverPage() {
       setErrorMessage(err.message || "Failed to process audio.");
     } finally {
       setIsProcessing(false);
+      setStatusText("");
     }
   };
 
-  // Управление воспроизведением
   const togglePlay = () => {
     const voc = vocalsAudioRef.current;
     const inst = instrumentalAudioRef.current;
-
     if (!inst && !voc) return;
 
     if (isPlaying) {
@@ -117,10 +114,7 @@ export default function VocalRemoverPage() {
       inst?.pause();
       setIsPlaying(false);
     } else {
-      // Синхронизация времени перед стартом
-      if (voc && inst) {
-        voc.currentTime = inst.currentTime;
-      }
+      if (voc && inst) voc.currentTime = inst.currentTime;
       inst?.play();
       voc?.play();
       setIsPlaying(true);
@@ -144,7 +138,6 @@ export default function VocalRemoverPage() {
     }
   };
 
-  // Скачивание дорожки
   const downloadTrack = async (url: string, type: "minus" | "acapella") => {
     try {
       const res = await fetch(url);
@@ -165,7 +158,6 @@ export default function VocalRemoverPage() {
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8 sm:py-12 space-y-8">
-      {/* Скрытые аудиоплееры для синхронизации */}
       {vocalsUrl && (
         <audio
           ref={vocalsAudioRef}
@@ -247,12 +239,10 @@ export default function VocalRemoverPage() {
             </div>
 
             <div className="text-sm font-semibold text-foreground">
-              {isProcessing
-                ? "AI is separating audio stems..."
-                : "Choose Song File or Drag & Drop"}
+              {isProcessing ? statusText : "Choose Song File or Drag & Drop"}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Supports MP3, WAV, FLAC, AAC up to 25MB (Takes ~15–20 seconds)
+              Supports MP3, WAV, FLAC, AAC up to 50MB (Takes ~15–20 seconds)
             </p>
           </div>
 
@@ -261,10 +251,10 @@ export default function VocalRemoverPage() {
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-muted-foreground flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                  Neural Network Demucs v4 processing stems...
+                  {statusText}
                 </span>
                 <span className="font-mono text-primary animate-pulse">
-                  Running AI
+                  Running
                 </span>
               </div>
               <Progress value={null} className="h-2 rounded-full" />
@@ -273,12 +263,11 @@ export default function VocalRemoverPage() {
         </CardContent>
       </Card>
 
-      {/* Результат и микшер дорожек */}
+      {/* Результат */}
       {vocalsUrl && instrumentalUrl && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <Card className="border-border/60 bg-card/60 backdrop-blur-xl shadow-sm">
             <CardContent className="p-5 sm:p-6 space-y-6">
-              {/* Шапка плеера */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
@@ -308,7 +297,6 @@ export default function VocalRemoverPage() {
                 </Button>
               </div>
 
-              {/* Таймлайн тайминга */}
               <div className="space-y-2">
                 <Slider
                   value={[currentTime]}
@@ -323,9 +311,8 @@ export default function VocalRemoverPage() {
                 </div>
               </div>
 
-              {/* Независимые фейдеры дорожек */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                {/* Фейдер Музыки */}
+                {/* Минус */}
                 <div className="p-4 rounded-xl bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -347,19 +334,17 @@ export default function VocalRemoverPage() {
                     }
                     className="cursor-pointer"
                   />
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMusicVolume(musicVolume === 0 ? 1 : 0)}
-                      className="h-7 text-[11px] rounded-lg w-full"
-                    >
-                      {musicVolume === 0 ? "Unmute" : "Mute Music"}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMusicVolume(musicVolume === 0 ? 1 : 0)}
+                    className="h-7 text-[11px] rounded-lg w-full"
+                  >
+                    {musicVolume === 0 ? "Unmute" : "Mute Music"}
+                  </Button>
                 </div>
 
-                {/* Фейдер Вокала */}
+                {/* Вокал */}
                 <div className="p-4 rounded-xl bg-secondary/50 border border-border/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -381,22 +366,19 @@ export default function VocalRemoverPage() {
                     }
                     className="cursor-pointer"
                   />
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setVocalVolume(vocalVolume === 0 ? 1 : 0)}
-                      className="h-7 text-[11px] rounded-lg w-full"
-                    >
-                      {vocalVolume === 0
-                        ? "Unmute Vocals"
-                        : "Karaoke Mode (Mute Vocals)"}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVocalVolume(vocalVolume === 0 ? 1 : 0)}
+                    className="h-7 text-[11px] rounded-lg w-full"
+                  >
+                    {vocalVolume === 0
+                      ? "Unmute Vocals"
+                      : "Karaoke Mode (Mute Vocals)"}
+                  </Button>
                 </div>
               </div>
 
-              {/* Кнопки прямого скачивания */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <Button
                   onClick={() => downloadTrack(instrumentalUrl, "minus")}

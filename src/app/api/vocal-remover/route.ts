@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60; // 60 секунд для serverless функции Vercel
+export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -13,20 +13,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const { audioUrl } = await req.json();
 
-    if (!file) {
-      return NextResponse.json({ error: "No audio file provided" }, { status: 400 });
+    if (!audioUrl) {
+      return NextResponse.json({ error: "No audio URL provided" }, { status: 400 });
     }
 
-    // Конвертируем файл в base64 data URI
-    const bytes = await file.arrayBuffer();
-    const base64Audio = Buffer.from(bytes).toString("base64");
-    const mimeType = file.type || "audio/mpeg";
-    const dataUri = `data:${mimeType};base64,${base64Audio}`;
-
-    // 1. Запуск инференса модели Demucs v4 (cjwbw/demucs)
+    // Запуск инференса модели Meta Demucs v4
     const createPredictionRes = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
       headers: {
@@ -34,11 +27,10 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // Demucs v4 model version
         version: "25a17394f11a49941ab20ce016bc4e28cd5b144b1fa0ed3e7c97e5cb083d65d2",
         input: {
-          audio: dataUri,
-          two_stems: "vocals", // Разделяет на vocals и no_vocals (минус)
+          audio: audioUrl,
+          two_stems: "vocals",
           stem: "vocals",
         },
       }),
@@ -51,12 +43,16 @@ export async function POST(req: Request) {
 
     let prediction = await createPredictionRes.json();
 
-    // 2. Опрос статуса выполнения задачи (Polling)
+    // Опрос готовности
     const pollUrl = prediction.urls.get;
-    const maxAttempts = 30;
+    const maxAttempts = 35;
     let attempts = 0;
 
-    while (prediction.status !== "succeeded" && prediction.status !== "failed" && attempts < maxAttempts) {
+    while (
+      prediction.status !== "succeeded" &&
+      prediction.status !== "failed" &&
+      attempts < maxAttempts
+    ) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       attempts++;
 
@@ -73,7 +69,6 @@ export async function POST(req: Request) {
       throw new Error(prediction.error || "AI stem separation timed out or failed");
     }
 
-    // Demucs возвращает ссылки на изолированные файлы: vocals и no_vocals
     return NextResponse.json({
       success: true,
       vocalsUrl: prediction.output?.vocals || null,
