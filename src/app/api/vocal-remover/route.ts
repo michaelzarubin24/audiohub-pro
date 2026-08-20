@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const apiToken = process.env.REPLICATE_API_TOKEN;
     if (!apiToken) {
       return NextResponse.json(
-        { error: "REPLICATE_API_TOKEN is not configured in environment variables." },
+        { error: "REPLICATE_API_TOKEN is missing in environment variables." },
         { status: 500 }
       );
     }
@@ -16,36 +16,43 @@ export async function POST(req: Request) {
     const { audioUrl } = await req.json();
 
     if (!audioUrl) {
-      return NextResponse.json({ error: "No audio URL provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No audio URL provided" },
+        { status: 400 }
+      );
     }
 
-    // Запуск инференса модели Meta Demucs v4
-    const createPredictionRes = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: "25a17394f11a49941ab20ce016bc4e28cd5b144b1fa0ed3e7c97e5cb083d65d2",
-        input: {
-          audio: audioUrl,
-          two_stems: "vocals",
-          stem: "vocals",
+    // 1. Создание задачи через прямой эндпоинт модели (всегда выбирает актуальную версию)
+    const createPredictionRes = await fetch(
+      "https://api.replicate.com/v1/models/cjwbw/demucs/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+          Prefer: "respond-async",
         },
-      }),
-    });
+        body: JSON.stringify({
+          input: {
+            audio: audioUrl,
+            two_stems: "vocals",
+          },
+        }),
+      }
+    );
 
     if (!createPredictionRes.ok) {
       const err = await createPredictionRes.json();
-      throw new Error(err.detail || "Failed to start AI separation task");
+      throw new Error(
+        err.detail || err.error || "Failed to initialize Replicate Demucs AI task"
+      );
     }
 
     let prediction = await createPredictionRes.json();
 
-    // Опрос готовности
+    // 2. Опрос готовности (Polling)
     const pollUrl = prediction.urls.get;
-    const maxAttempts = 35;
+    const maxAttempts = 40;
     let attempts = 0;
 
     while (
@@ -66,13 +73,20 @@ export async function POST(req: Request) {
     }
 
     if (prediction.status !== "succeeded") {
-      throw new Error(prediction.error || "AI stem separation timed out or failed");
+      throw new Error(
+        prediction.error || "AI stem separation timed out or failed on worker."
+      );
     }
+
+    // Извлечение ссылок на вокал и минус
+    const vocals = prediction.output?.vocals || null;
+    const instrumental =
+      prediction.output?.no_vocals || prediction.output?.other || null;
 
     return NextResponse.json({
       success: true,
-      vocalsUrl: prediction.output?.vocals || null,
-      instrumentalUrl: prediction.output?.no_vocals || null,
+      vocalsUrl: vocals,
+      instrumentalUrl: instrumental,
     });
   } catch (error: any) {
     console.error("Vocal Remover AI Error:", error);
