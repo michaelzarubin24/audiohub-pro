@@ -20,6 +20,7 @@ import {
   ProcessedAudioResult,
 } from "@/lib/silence-remover";
 import { AudioExportFormat } from "@/lib/soundtouch-engine";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function SilenceRemoverPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -388,6 +389,8 @@ export default function SilenceRemoverPage() {
           )}
         </CardContent>
       </Card>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="waveform-bottom-slot" format="horizontal" />
     </main>
   );
 }

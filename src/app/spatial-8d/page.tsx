@@ -17,6 +17,7 @@ import { Spatial8DEngine, Spatial8DOptions } from "@/lib/spatial-8d";
 import { AudioConverterEngine } from "@/lib/audio-converter";
 import { SpatialOrbitVisualizer } from "@/components/audio/spatial-orbit-visualizer";
 import { SpatialPresets } from "@/components/audio/spatial-presets";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function Spatial8DPage() {
   const [fileName, setFileName] = useState<string>("");
@@ -496,6 +497,8 @@ export default function Spatial8DPage() {
           </div>
         )}
       </div>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="waveform-bottom-slot" format="horizontal" />
     </div>
   );
 }

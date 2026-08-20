@@ -21,6 +21,7 @@ import {
   NormalizationResult,
 } from "@/lib/loudness-normalizer";
 import { AudioConverterEngine } from "@/lib/audio-converter";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function NormalizerPage() {
   // Файл и буферы
@@ -532,6 +533,8 @@ export default function NormalizerPage() {
           </div>
         )}
       </div>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="converter-bottom-slot" format="horizontal" />
     </div>
   );
 }

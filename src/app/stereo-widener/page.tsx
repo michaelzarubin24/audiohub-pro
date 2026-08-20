@@ -20,6 +20,7 @@ import {
 import { AudioConverterEngine } from "@/lib/audio-converter";
 import { GoniometerVisualizer } from "@/components/audio/goniometer-visualizer";
 import { StereoControls } from "@/components/audio/stereo-controls";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function StereoWidenerPage() {
   const [fileName, setFileName] = useState<string>("");
@@ -470,6 +471,8 @@ export default function StereoWidenerPage() {
           </div>
         )}
       </div>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="converter-bottom-slot" format="horizontal" />
     </div>
   );
 }

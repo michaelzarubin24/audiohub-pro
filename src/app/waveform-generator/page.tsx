@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/shared/file-dropzone";
 import { WaveformControls } from "@/components/audio/waveform-controls";
+import { AdBanner } from "@/components/shared/ad-banner";
 import {
   Card,
   CardContent,
@@ -501,6 +502,9 @@ export default function WaveformGeneratorPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Рекламный баннер */}
+      <AdBanner slotId="waveform-bottom-slot" format="horizontal" />
     </main>
   );
 }

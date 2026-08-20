@@ -21,6 +21,7 @@ import {
 import { AudioConverterEngine } from "@/lib/audio-converter";
 import { CamelotWheelCard } from "@/components/audio/camelot-wheel-card";
 import { MetronomePreview } from "@/components/audio/metronome-preview";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function BpmKeyDetectorPage() {
   const [fileName, setFileName] = useState<string>("");
@@ -373,6 +374,8 @@ export default function BpmKeyDetectorPage() {
           </div>
         )}
       </div>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="converter-bottom-slot" format="horizontal" />
     </div>
   );
 }

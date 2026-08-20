@@ -2,21 +2,22 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="border-t border-border/40 bg-background/50 py-6 text-sm text-muted-foreground">
-      <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 sm:flex-row">
-        <p>
-          © {new Date().getFullYear()} AudioHub. All audio processed locally in
-          your browser.
-        </p>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/pitch-shifter" className="hover:underline">
-            Pitch Shifter
+    <footer className="border-t border-border/40 py-6 sm:py-8 bg-background/50 backdrop-blur-sm">
+      <div className="container mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div>© {new Date().getFullYear()} AudioHub. All rights reserved.</div>
+
+        <div className="flex items-center gap-6">
+          <Link
+            href="/privacy"
+            className="hover:text-foreground transition-colors"
+          >
+            Privacy Policy
           </Link>
-          <Link href="/silence-remover" className="hover:underline">
-            Silence Remover
-          </Link>
-          <Link href="/waveform-generator" className="hover:underline">
-            Waveform Generator
+          <Link
+            href="/converter"
+            className="hover:text-foreground transition-colors"
+          >
+            Tools
           </Link>
         </div>
       </div>

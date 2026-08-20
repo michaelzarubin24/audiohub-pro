@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 // Встроенный SVG-компонент YouTube (не зависит от внешних библиотек иконок)
 function YoutubeIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -807,6 +808,9 @@ export default function AudioConverterPage() {
           </Card>
         </div>
       )}
+
+      {/* Рекламный баннер */}
+      <AdBanner slotId="converter-bottom-slot" format="horizontal" />
     </div>
   );
 }

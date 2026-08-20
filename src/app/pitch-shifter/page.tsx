@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SoundTouchEngine, AudioExportFormat } from "@/lib/soundtouch-engine";
+import { AdBanner } from "@/components/shared/ad-banner";
 
 export default function PitchShifterPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -277,6 +278,8 @@ export default function PitchShifterPage() {
           )}
         </CardContent>
       </Card>
+      {/* Рекламный баннер */}
+      <AdBanner slotId="waveform-bottom-slot" format="horizontal" />
     </main>
   );
 }
