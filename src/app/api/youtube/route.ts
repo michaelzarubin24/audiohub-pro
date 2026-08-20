@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 20;
+export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
 function extractVideoId(url: string): string | null {
@@ -24,148 +24,57 @@ export async function POST(req: Request) {
     const videoId = extractVideoId(url);
     if (!videoId) {
       return NextResponse.json(
-        { error: "Invalid YouTube URL. Please provide a valid video or shorts link." },
+        { error: "Invalid YouTube URL format. Please provide a valid video or shorts link." },
         { status: 400 }
       );
     }
 
-    const targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
-
-    // 1. Пул инстансов Cobalt API (протокол v10)
-    const cobaltEndpoints = [
-      "https://api.cobalt.tools",
-      "https://cobalt-backend.canine.tools",
-    ];
-
-    for (const endpoint of cobaltEndpoints) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
-
-        const res = await fetch(`${endpoint}/`, {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "User-Agent": "AudioHub-Web/1.0",
-          },
-          body: JSON.stringify({
-            url: targetUrl,
-            downloadMode: "audio",
-            audioFormat: "mp3",
-            audioBitrate: "320",
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-
-        if (res.ok) {
-          const data = await res.json();
-          const downloadUrl = data.url || data.audio;
-
-          if (downloadUrl) {
-            const streamRes = await fetch(downloadUrl);
-            if (streamRes.ok) {
-              const buffer = await streamRes.arrayBuffer();
-              return new NextResponse(buffer, {
-                headers: {
-                  "Content-Type": "audio/mpeg",
-                  "Content-Disposition": `attachment; filename="audio_${videoId}.mp3"`,
-                },
-              });
-            }
-          }
-        }
-      } catch {
-        // Переход к следующему зеркалу
-      }
+    const rapidApiKey = process.env.RAPIDAPI_KEY;
+    if (!rapidApiKey) {
+      return NextResponse.json(
+        { error: "RAPIDAPI_KEY is not configured in environment variables." },
+        { status: 500 }
+      );
     }
 
-    // 2. Пул активных зеркал Invidious API
-    const invidiousNodes = [
-      "https://yewtu.be",
-      "https://inv.nadeko.net",
-      "https://invidious.nerdvpn.de",
-      "https://invidious.f5.si",
-    ];
-
-    for (const node of invidiousNodes) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
-
-        const infoRes = await fetch(`${node}/api/v1/videos/${videoId}`, {
-          signal: controller.signal,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          },
-        });
-
-        clearTimeout(timeout);
-
-        if (infoRes.ok) {
-          const info = await infoRes.json();
-          const formats = [
-            ...(info.adaptiveFormats || []),
-            ...(info.formatStreams || []),
-          ];
-
-          // Ищем аудиопотоки с наилучшим качеством
-          const audioFormats = formats.filter(
-            (f: any) =>
-              f.type?.startsWith("audio/") ||
-              f.mimeType?.startsWith("audio/") ||
-              f.audioQuality
-          );
-
-          if (audioFormats.length > 0) {
-            audioFormats.sort(
-              (a: any, b: any) =>
-                (parseInt(b.bitrate, 10) || 0) - (parseInt(a.bitrate, 10) || 0)
-            );
-
-            const bestAudio = audioFormats[0];
-            const audioStreamUrl = bestAudio.url;
-
-            if (audioStreamUrl) {
-              const audioStreamRes = await fetch(audioStreamUrl, {
-                headers: {
-                  "User-Agent":
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                },
-              });
-
-              if (audioStreamRes.ok) {
-                const buffer = await audioStreamRes.arrayBuffer();
-                return new NextResponse(buffer, {
-                  headers: {
-                    "Content-Type":
-                      bestAudio.type || bestAudio.mimeType || "audio/mpeg",
-                    "Content-Disposition": `attachment; filename="audio_${videoId}.mp3"`,
-                  },
-                });
-              }
-            }
-          }
-        }
-      } catch {
-        // Переход к следующей ноде
-      }
-    }
-
-    return NextResponse.json(
-      {
-        error:
-          "YouTube rate-limit reached across all public mirrors. Please upload your audio file directly via the 'Upload File' tab.",
+    // 1. Запрос на конвертацию к RapidAPI
+    const apiUrl = `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`;
+    const rapidRes = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "x-rapidapi-key": rapidApiKey,
+        "x-rapidapi-host": "youtube-mp36.p.rapidapi.com",
       },
-      { status: 502 }
-    );
+    });
+
+    if (!rapidRes.ok) {
+      throw new Error(`RapidAPI responded with status ${rapidRes.status}`);
+    }
+
+    const rapidData = await rapidRes.json();
+
+    if (rapidData.status === "fail" || !rapidData.link) {
+      throw new Error(rapidData.msg || "Failed to generate MP3 stream from YouTube.");
+    }
+
+    // 2. Скачивание аудиопотока и проксирование клиенту
+    const streamRes = await fetch(rapidData.link);
+    if (!streamRes.ok) {
+      throw new Error("Failed to stream audio file from download provider.");
+    }
+
+    const audioBuffer = await streamRes.arrayBuffer();
+
+    return new NextResponse(audioBuffer, {
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `attachment; filename="${rapidData.title || `youtube_${videoId}`}.mp3"`,
+      },
+    });
   } catch (error: any) {
-    console.error("YouTube API Route Error:", error);
+    console.error("RapidAPI YouTube Error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to process audio stream" },
+      { error: error.message || "Failed to extract YouTube audio" },
       { status: 500 }
     );
   }
