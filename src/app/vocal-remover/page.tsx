@@ -73,14 +73,20 @@ export default function VocalRemoverPage() {
     setCurrentTime(0);
 
     try {
-      // 1. Прямая загрузка в Vercel Blob из браузера
+      // 1. Очистка имени файла от пробелов, кириллицы и скобок для Vercel Blob
+      const safeExtension = file.name.split(".").pop() || "mp3";
+      const cleanName = `track_${Date.now()}_${file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "_")}.${safeExtension}`;
+
+      // 2. Прямая загрузка в Vercel Blob
       setStatusText("Uploading audio to cloud storage...");
-      const blob = await upload(file.name, file, {
+      const blob = await upload(cleanName, file, {
         access: "public",
         handleUploadUrl: "/api/upload",
       });
 
-      // 2. Отправка публичного URL в нейросеть
+      // 3. Передача ссылки в нейросеть Demucs v4
       setStatusText("AI is isolating stems (Demucs v4)...");
       const response = await fetch("/api/vocal-remover", {
         method: "POST",
@@ -88,15 +94,22 @@ export default function VocalRemoverPage() {
         body: JSON.stringify({ audioUrl: blob.url }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Neural network separation failed.");
+        let errorMsg = "Neural network separation failed.";
+        try {
+          const errData = await response.json();
+          errorMsg = errData.error || errorMsg;
+        } catch {
+          errorMsg = `Server error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMsg);
       }
 
+      const data = await response.json();
       setVocalsUrl(data.vocalsUrl);
       setInstrumentalUrl(data.instrumentalUrl);
     } catch (err: any) {
+      console.error("Vocal remover error:", err);
       setErrorMessage(err.message || "Failed to process audio.");
     } finally {
       setIsProcessing(false);
