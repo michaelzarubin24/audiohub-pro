@@ -117,10 +117,6 @@ export default function HomePage() {
     <div className="container mx-auto max-w-6xl px-4 py-16 space-y-16">
       {/* Hero Section */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Professional Web Audio Processing Suite</span>
-        </div>
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
           Next-Gen Audio Toolkit for Creators & Musicians
         </h1>
