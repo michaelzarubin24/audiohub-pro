@@ -3,13 +3,6 @@ import { NextResponse } from "next/server";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-// Список активных публичных моделей Demucs на Replicate
-const DEMUCS_MODELS = [
-  "lucataco/demucs",
-  "chenxwh/demucs",
-  "sakurai-youhei/demucs",
-];
-
 export async function POST(req: Request) {
   try {
     const apiToken = process.env.REPLICATE_API_TOKEN;
@@ -28,51 +21,48 @@ export async function POST(req: Request) {
       );
     }
 
-    let prediction: any = null;
-    let lastError: string = "";
-
-    // 1. Поочередная попытка запуска инференса на доступных моделях
-    for (const modelPath of DEMUCS_MODELS) {
-      try {
-        const createRes = await fetch(
-          `https://api.replicate.com/v1/models/${modelPath}/predictions`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiToken}`,
-              "Content-Type": "application/json",
-              Prefer: "respond-async",
-            },
-            body: JSON.stringify({
-              input: {
-                audio: audioUrl,
-                two_stems: "vocals",
-              },
-            }),
-          }
-        );
-
-        if (createRes.ok) {
-          prediction = await createRes.json();
-          break; // Модель успешно запущена
-        } else {
-          const errData = await createRes.json().catch(() => ({}));
-          lastError = errData.detail || errData.error || `Failed on ${modelPath}`;
-        }
-      } catch (err: any) {
-        lastError = err.message || `Network error on ${modelPath}`;
+    // 1. Одиночный точный запрос к модели lucataco/demucs
+    const createRes = await fetch(
+      "https://api.replicate.com/v1/models/lucataco/demucs/predictions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+          Prefer: "respond-async",
+        },
+        body: JSON.stringify({
+          input: {
+            audio: audioUrl,
+            two_stems: "vocals",
+          },
+        }),
       }
-    }
+    );
 
-    if (!prediction || !prediction.urls?.get) {
-      throw new Error(
-        lastError || "Could not find an available Demucs AI instance on Replicate."
+    // Обработка лимитов бесплатного аккаунта Replicate
+    if (createRes.status === 429) {
+      return NextResponse.json(
+        {
+          error:
+            "Replicate free tier rate limit reached (1 request at a time). Please wait 10 seconds and try again.",
+        },
+        { status: 429 }
       );
     }
 
-    // 2. Опрос статуса выполнения задачи (Polling)
+    if (!createRes.ok) {
+      const errData = await createRes.json().catch(() => ({}));
+      throw new Error(
+        errData.detail || errData.error || `Replicate returned error ${createRes.status}`
+      );
+    }
+
+    let prediction = await createRes.json();
+
+    // 2. Опрос статуса готовности (Polling)
     const pollUrl = prediction.urls.get;
-    const maxAttempts = 40;
+    const maxAttempts = 45;
     let attempts = 0;
 
     while (
@@ -94,28 +84,23 @@ export async function POST(req: Request) {
 
     if (prediction.status !== "succeeded") {
       throw new Error(
-        prediction.error || "AI stem separation timed out or failed."
+        prediction.error || "AI stem separation timed out or failed on worker."
       );
     }
 
-    // 3. Универсальный парсинг выходных стэмов
+    // 3. Извлечение ссылок на стэмы
     let vocals: string | null = null;
     let instrumental: string | null = null;
 
     const out = prediction.output;
     if (out && typeof out === "object") {
-      if (Array.isArray(out)) {
-        vocals = out[0] || null;
-        instrumental = out[1] || null;
-      } else {
-        vocals = out.vocals || out.vocal || null;
-        instrumental =
-          out.no_vocals ||
-          out.other ||
-          out.instrumental ||
-          out.accompaniment ||
-          null;
-      }
+      vocals = out.vocals || out.vocal || null;
+      instrumental =
+        out.no_vocals ||
+        out.other ||
+        out.instrumental ||
+        out.accompaniment ||
+        null;
     }
 
     return NextResponse.json({
