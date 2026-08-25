@@ -8,14 +8,13 @@ import {
   Gauge,
   Compass,
   Maximize2,
-  Sparkles,
+  Download,
   Zap,
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Footer } from "@/components/shared/footer";
 
 const TOOLS = [
   {
@@ -116,7 +115,7 @@ export default function HomePage() {
               <span>100% Private (No Cloud Storage)</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Download className="h-4 w-4 text-primary" />
               <span>Studio Lossless Export (WAV / 320k MP3)</span>
             </div>
           </div>
